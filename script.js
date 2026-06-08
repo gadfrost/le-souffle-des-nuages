@@ -4,10 +4,10 @@ window.addEventListener('load', () => {
     const nameInput = document.getElementById('nameInput');
     const generateBtn = document.getElementById('generateBtn');
 
-    // Configuration des éléments
+    // Configuration avancée du paysage
     let grassBlades = [];
-    const grassCount = 120;
-    let backgroundClouds = []; // Nuages de fond
+    const grassCount = 180;    // Plus d'herbe pour plus de densité
+    let backgroundClouds = []; // Nuages décoratifs de fond
     let cloudParticles = [];    // Particules du prénom
     let time = 0;              // Compteur pour le vent
 
@@ -18,138 +18,146 @@ window.addEventListener('load', () => {
         initBackgroundClouds();
     }
 
-    // 1. Initialisation de l'herbe
+    // 1. Initialisation de l'herbe avec des teintes de vert variées pour le réalisme
     function initGrass() {
         grassBlades = [];
         for (let i = 0; i < grassCount; i++) {
+            // Un mélange de vert prairie et de vert tendre
+            const greens = ['#27ae60', '#2ecc71', '#1e824c', '#26a65b'];
             grassBlades.push({
                 x: Math.random() * canvas.width,
-                y: canvas.height - (Math.random() * 30),
-                height: 25 + Math.random() * 20,
+                y: canvas.height - (Math.random() * 40),
+                height: 20 + Math.random() * 25,
+                color: greens[Math.floor(Math.random() * greens.length)],
                 speed: 0.02 + Math.random() * 0.02,
                 phase: Math.random() * Math.PI
             });
         }
     }
 
-    // 2. Initialisation des nuages de fond
+    // 2. Des nuages de fond plus réalistes (plusieurs tailles et couches)
     function initBackgroundClouds() {
         backgroundClouds = [];
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
             backgroundClouds.push({
                 x: Math.random() * canvas.width,
-                y: 40 + Math.random() * 100,
-                size: 35 + Math.random() * 35,
-                speed: 0.15 + Math.random() * 0.2
+                y: 30 + Math.random() * 140,
+                size: 25 + Math.random() * 35,
+                speed: 0.1 + Math.random() * 0.15,
+                opacity: 0.1 + Math.random() * 0.15 // Très légers pour donner de la profondeur
             });
         }
     }
 
-    // Dessiner un nuage décoratif en arrière-plan
+    // Dessin d'un nuage de fond vaporeux
     function drawCloudShape(x, y, size, opacity) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.fillStyle = `rgba(245, 247, 250, ${opacity})`;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.arc(x + size * 0.6, y - size * 0.4, size * 0.8, 0, Math.PI * 2);
-        ctx.arc(x + size * 1.2, y, size * 0.7, 0, Math.PI * 2);
-        ctx.arc(x + size * 0.6, y + size * 0.2, size * 0.6, 0, Math.PI * 2);
+        ctx.arc(x + size * 0.5, y - size * 0.3, size * 1.2, 0, Math.PI * 2);
+        ctx.arc(x + size * 1.1, y, size * 0.9, 0, Math.PI * 2);
+        ctx.arc(x + size * 0.5, y + size * 0.2, size * 0.8, 0, Math.PI * 2);
         ctx.closePath();
         ctx.fill();
     }
 
-    // 3. GÉNÉRATION DU PRÉNOM : Apparaît directement avec la bonne forme !
+    // 3. LOGIQUE MAGIQUE : Le prénom naît à gauche (hors-écran) et traverse au vent
     function generateCloudName(text) {
         if (!text.trim()) return;
-        cloudParticles = []; // On efface le nuage précédent pour le nouveau souffle
+        cloudParticles = []; // Réinitialise le ciel pour le nouveau prénom
 
         const isMobile = canvas.width < 768;
         
-        // Taille de police bien proportionnée
-        let fontSize = isMobile ? (canvas.width / (text.length * 0.55)) : (canvas.width / (text.length * 0.75));
-        fontSize = Math.min(Math.max(fontSize, 45), 110); 
+        // Taille ajustable selon la longueur du prénom
+        let fontSize = isMobile ? (canvas.width / (text.length * 0.5)) : (canvas.width / (text.length * 0.7));
+        fontSize = Math.min(Math.max(fontSize, 50), 120); 
 
-        // Création du canvas invisible
+        // Canvas invisible pour capturer la forme parfaite du prénom
         const textCanvas = document.createElement('canvas');
         textCanvas.width = canvas.width;
         textCanvas.height = canvas.height;
         const textCtx = textCanvas.getContext('2d');
 
-        textCtx.font = `bold ${fontSize}px sans-serif`;
+        textCtx.font = `bold ${fontSize}px "Segoe UI", sans-serif`;
         textCtx.textBaseline = 'middle';
         textCtx.textAlign = 'center';
         
-        // On dessine le texte au début de l'écran (à gauche) pour qu'il ait toute la place de défiler
-        const startX = isMobile ? canvas.width * 0.3 : canvas.width * 0.25;
-        const startY = canvas.height * 0.3; // Hauteur dans le ciel
-
+        // On dessine le texte au centre horizontal temporairement pour le scanner
         textCtx.fillStyle = 'white';
-        textCtx.fillText(text.toUpperCase(), startX, startY);
+        textCtx.fillText(text.toUpperCase(), canvas.width / 2, canvas.height * 0.3);
 
         const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
-        
-        // Un gap plus serré (3 ou 4) permet de mieux voir les détails des lettres !
-        const gap = isMobile ? 4 : 5; 
+        const gap = isMobile ? 4 : 5; // Échantillonnage serré pour une excellente lisibilité
 
         for (let y = 0; y < textCanvas.height; y += gap) {
             for (let x = 0; x < textCanvas.width; x += gap) {
                 const index = (y * textCanvas.width + x) * 4;
                 if (imageData.data[index + 3] > 128) {
                     
+                    // CORRECTION CLÉ : On calcule l'écart par rapport au centre de la forme
+                    const offsetX = x - (canvas.width / 2);
+                    
+                    // Toutes les particules commencent groupées HORS-ÉCRAN à gauche (-250px)
+                    // Mais elles mémorisent leur position relative (offsetX) pour garder le prénom intact
                     cloudParticles.push({
-                        x: x, // Position X exacte du pixel : la forme est parfaite tout de suite !
-                        y: y + (Math.random() * 4 - 2), // Un tout petit peu de relief
-                        size: 4 + Math.random() * 6,   // Particules plus fines pour des lettres nettes
-                        alpha: 0.2 + Math.random() * 0.3, // Brume douce mais bien visible
-                        vx: 0.6 + Math.random() * 0.4,   // Vitesse du vent globale et homogène
-                        driftY: Math.sin(x) * 0.05,       // Flottement très léger
-                        baseY: y
+                        x: -250 + offsetX, 
+                        y: y + (Math.random() * 4 - 2),
+                        baseY: y,
+                        offsetX: offsetX,
+                        size: 5 + Math.random() * 7,      // Particules vaporeuses mais précises
+                        alpha: 0.25 + Math.random() * 0.25, // Densité idéale pour rester visible
+                        vx: 1.2,                           // Vitesse du vent constante pour tout le prénom
+                        speedOffset: Math.random() * 0.15, // Très léger décalage pour le côté "nuage"
+                        randomDrift: Math.random() * Math.PI
                     });
                 }
             }
         }
     }
 
-    // 4. Boucle principale d'animation
+    // 4. Boucle d'animation principale (Le rendu visuel)
     function animate() {
-        // Ciel en dégradé
+        // Ciel : Un magnifique dégradé de l'aube/journée calme
         let skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        skyGradient.addColorStop(0, '#4a90e2');
-        skyGradient.addColorStop(0.6, '#a1c4fd');
-        skyGradient.addColorStop(1, '#c2e9fb');
+        skyGradient.addColorStop(0, '#1a5276');   // Bleu profond au sommet
+        skyGradient.addColorStop(0.4, '#2980b9'); // Bleu azur
+        skyGradient.addColorStop(0.7, '#a9dfbf'); // Une touche de lumière émeraude à l'horizon
+        skyGradient.addColorStop(1, '#e8f8f5');   // Brume blanche juste au-dessus de la plaine
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Nuages décoratifs de fond
+        // Dessin des nuages décoratifs de fond
         backgroundClouds.forEach(cloud => {
             cloud.x += cloud.speed;
             if (cloud.x - cloud.size * 2 > canvas.width) {
                 cloud.x = -cloud.size * 2;
-                cloud.y = 40 + Math.random() * 100;
+                cloud.y = 30 + Math.random() * 140;
             }
-            drawCloudShape(cloud.x, cloud.y, cloud.size, 0.2);
+            drawCloudShape(cloud.x, cloud.y, cloud.size, cloud.opacity);
         });
 
         // Animation du Nuage-Prénom
-        time += 0.02;
+        time += 0.025;
 
         for (let i = cloudParticles.length - 1; i >= 0; i--) {
             let p = cloudParticles[i];
 
-            p.x += p.vx; // Le vent pousse le nuage vers la droite
+            // Le vent pousse uniformément le prénom vers la droite
+            p.x += p.vx; 
             
-            // Effet de ondulation naturelle du vent sans détruire la forme de la lettre
-            p.y = p.baseY + Math.sin(time + p.x * 0.02) * 4; 
+            // Effet vaporeux / sexy : le nuage ondule très légèrement sans casser les lettres
+            p.y = p.baseY + Math.sin(time + p.x * 0.015 + p.randomDrift) * 2;
 
-            // Évaporation très lente uniquement quand il commence à sortir de l'écran à droite
-            if (p.x > canvas.width * 0.8) {
-                p.alpha -= 0.002;
+            // Il commence à se dissiper doucement seulement quand il arrive tout à droite
+            if (p.x > canvas.width * 0.85) {
+                p.alpha -= 0.004;
             }
 
-            // Supprimer uniquement s'il est totalement sorti ou invisible
-            if (p.x > canvas.width + 50 || p.alpha <= 0) {
+            // Suppression s'il sort complètement de l'écran
+            if (p.x > canvas.width + 300 || p.alpha <= 0) {
                 cloudParticles.splice(i, 1);
             } else {
-                // Dessin de la particule de texte
+                // Rendu des particules de brume
                 ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -157,31 +165,47 @@ window.addEventListener('load', () => {
             }
         }
 
-        // Dessin de la plaine verte
-        ctx.fillStyle = '#27ae60';
+        // 5. Un paysage plus retravaillé : Double colline pour donner du relief
+        // Colline lointaine (plus sombre)
+        ctx.fillStyle = '#1e8449';
         ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 80);
-        ctx.quadraticCurveTo(canvas.width / 2, canvas.height - 130, canvas.width, canvas.height - 80);
+        ctx.moveTo(0, canvas.height - 60);
+        ctx.quadraticCurveTo(canvas.width * 0.3, canvas.height - 110, canvas.width, canvas.height - 50);
         ctx.lineTo(canvas.width, canvas.height);
         ctx.lineTo(0, canvas.height);
         ctx.closePath();
         ctx.fill();
 
-        // Animation de l'herbe au vent
-        ctx.strokeStyle = '#1e7e34';
-        ctx.lineWidth = 2;
+        // Colline principale (au premier plan)
+        ctx.fillStyle = '#27ae60';
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 80);
+        ctx.quadraticCurveTo(canvas.width * 0.65, canvas.height - 140, canvas.width, canvas.height - 75);
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+
+        // Dessin des brins d'herbe multicolores oscillants
+        ctx.lineWidth = 1.8;
         grassBlades.forEach(blade => {
-            const wind = Math.sin(time + blade.x * 0.015) * 12;
+            ctx.strokeStyle = blade.color;
+            // Force du vent liée au temps pour un balancement naturel
+            const wind = Math.sin(time + blade.x * 0.02) * 10;
+            
             ctx.beginPath();
             ctx.moveTo(blade.x, blade.y);
-            ctx.quadraticCurveTo(blade.x, blade.y - blade.height / 2, blade.x + wind, blade.y - blade.height);
+            ctx.quadraticCurveTo(
+                blade.x, blade.y - blade.height / 2, 
+                blade.x + wind, blade.y - blade.height
+            );
             ctx.stroke();
         });
 
         requestAnimationFrame(animate);
     }
 
-    // Événements
+    // Événements d'envoi du prénom
     generateBtn.addEventListener('click', () => {
         generateCloudName(nameInput.value);
     });
